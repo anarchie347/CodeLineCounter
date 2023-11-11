@@ -19,35 +19,34 @@ namespace CodeLineCounter
             {
                 path = args[0];
             }
-            
-            if (!Directory.GetFiles(path).Where(p => p.EndsWith(".sln")).Any())
-            {
-                Console.WriteLine("No .sln file found, invalid directory");
-                Console.ReadKey();
-                Environment.Exit(1);
-            }
+            Console.WriteLine("Enter file extensions to search, separated by space. Do not include the .");
+            string[] fileExtensions = (Console.ReadLine()?.Split(" ", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()).ToArray();
 
-            //valid solution directory
-            string[] assemblies = Directory.GetDirectories(path).Where(p => !(p.EndsWith(".git") || p.EndsWith(".vs"))).ToArray();
-            Console.WriteLine(assemblies.Length);
-            if (assemblies.Length == 0)
+            //valid directory
+            Console.WriteLine("Enter excluded top level folder names, separated by spaces. '.git' is excluded automatically");
+            //string? ignoreString = ;
+            string[] ignoreFolders = (Console.ReadLine()?.Split(" ", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()).Append(".git").ToArray();
+            string[] TopLevelFolders = Directory.GetDirectories(path).Where(p => !ignoreFolders.Any(f => p.EndsWith(f))).ToArray();
+            if (TopLevelFolders.Length == 0)
             {
-                Console.WriteLine("No assemblies found, invalid directory");
+                Console.WriteLine("No top level folders found, invalid directory");
                 Console.ReadKey();
                 Environment.Exit(2);
             }
 
-            //has assemblies
+            //has TopLevelFolders
             Console.WriteLine("Found the following assemblies: ");
-            foreach (string assembly in assemblies)
+            foreach (string topLevelFolder in TopLevelFolders)
             {
-                Console.WriteLine(Path.GetFileName(assembly));
+                Console.WriteLine(Path.GetFileName(topLevelFolder));
             }
+            Console.WriteLine("Enter excluded sub folder names, separated by spaces");
+            ignoreFolders = Console.ReadLine()?.Split(" ", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
             Console.WriteLine();
             Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine("----------------------------------------------");
-            (int files, int lines)[] analysisResults = Array.ConvertAll(assemblies, a => AnalyseAssembly(a));
+            (int files, int lines)[] analysisResults = Array.ConvertAll(TopLevelFolders, a => AnalyseAssembly(a, ignoreFolders, fileExtensions));
             int totalFiles = analysisResults.Sum(a => a.files);
             int totalLines = analysisResults.Sum(a => a.lines);
             Console.ForegroundColor = ConsoleColor.Green;
@@ -61,11 +60,12 @@ namespace CodeLineCounter
             Console.ReadKey();
         }
 
-        public static (int files, int lines) AnalyseAssembly(string path)
+        public static (int files, int lines) AnalyseAssembly(string path, string[] ignoreFolders, string[] fileExtensions)
         {
-            string debugFolder = Path.Combine(path, "debug");
-            string objFolder = Path.Combine(path, "obj");
-            string[] codePaths = Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories).Where(p => !(p.StartsWith(debugFolder) || p.StartsWith(objFolder))).ToArray();
+            ignoreFolders = ignoreFolders.Select(f => Path.Combine(path, f)).ToArray();
+            
+            string[] codePaths = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories).Where(p => !ignoreFolders.Any(f => p.StartsWith(f))).ToArray();
+            codePaths = codePaths.Where(cp => fileExtensions.Any(fe => cp.EndsWith($".{fe}"))).ToArray();
             int fileCount = codePaths.Length;
             int lines = codePaths.Sum(p => File.ReadAllLines(p).Length);
             Console.ForegroundColor = ConsoleColor.White;
