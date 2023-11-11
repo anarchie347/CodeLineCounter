@@ -23,9 +23,9 @@ namespace CodeLineCounter
             string[] fileExtensions = (Console.ReadLine()?.Split(" ", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()).ToArray();
 
             //valid directory
-            Console.WriteLine("Enter excluded top level folder names, separated by spaces. '.git' is excluded automatically");
-            //string? ignoreString = ;
-            string[] ignoreFolders = (Console.ReadLine()?.Split(" ", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()).Append(".git").ToArray();
+            Console.WriteLine("Enter excluded top level folder names, separated by spaces. '.git .vs build node_modules' are excluded automatically");
+            string[] ignorePreset = new string[] { ".git", ".vs", "build", "node_modules" };
+            string[] ignoreFolders = (Console.ReadLine()?.Split(" ", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()).Concat(ignorePreset).ToArray();
             string[] TopLevelFolders = Directory.GetDirectories(path).Where(p => !ignoreFolders.Any(f => p.EndsWith(f))).ToArray();
             if (TopLevelFolders.Length == 0)
             {
